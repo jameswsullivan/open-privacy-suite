@@ -1,0 +1,69 @@
+name: open-privacy-suite
+
+services:
+
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab
+    hostname: gitlab
+    restart: unless-stopped
+    networks:
+      open-privacy-suite:
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url '${GITLAB_URL}'
+        nginx['listen_port'] = 80
+        nginx['redirect_http_to_https'] = true
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+    shm_size: "4gb"
+
+  joplin-app:
+    image: joplin/server:latest
+    container_name: joplin-app
+    hostname: joplin-app
+    restart: unless-stopped
+    networks:
+      open-privacy-suite:
+    environment:
+      APP_PORT: 80
+      APP_BASE_URL: "${JOPLIN_URL}"
+      DB_CLIENT: "pg"
+      POSTGRES_PASSWORD: "joplin"
+      POSTGRES_DATABASE: "joplin"
+      POSTGRES_USER: "joplin"
+      POSTGRES_PORT: 5432
+      POSTGRES_HOST: joplin-db
+    depends_on:
+      - joplin-db
+
+  joplin-db:
+    image: postgres:16
+    container_name: joplin-db
+    hostname: joplin-db
+    restart: unless-stopped
+    networks:
+      open-privacy-suite:
+    environment:
+      POSTGRES_USER: "joplin"
+      POSTGRES_PASSWORD: "joplin"
+      POSTGRES_DB: "joplin"
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      - joplin-db:/var/lib/postgresql/data
+
+
+networks:
+  open-privacy-suite:
+
+volumes:
+  gitlab-config:
+    driver: local
+  gitlab-logs:
+    driver: local
+  gitlab-data:
+    driver: local
+  joplin-db:
+    driver: local
